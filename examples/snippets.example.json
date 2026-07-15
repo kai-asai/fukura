@@ -1,0 +1,41 @@
+{
+  "version": 1,
+  "updated_at": "2026-06-20T10:00:00+09:00",
+  "snippets": [
+    {
+      "id": "mail",
+      "trigger": ";mail",
+      "body": "your.name@example.com",
+      "enabled": true,
+      "tags": ["contact"]
+    },
+    {
+      "id": "thanks",
+      "trigger": ";thx",
+      "body": "ありがとうございます。確認いたします。",
+      "enabled": true,
+      "tags": ["reply"]
+    },
+    {
+      "id": "today",
+      "trigger": ";today",
+      "body": "2026-06-20",
+      "enabled": true,
+      "tags": ["date"]
+    },
+    {
+      "id": "short-t",
+      "trigger": ";t",
+      "body": "短いトリガー",
+      "enabled": true,
+      "tags": ["date"]
+    },
+    {
+      "id": "address",
+      "trigger": ";addr",
+      "body": "住所を入力してください",
+      "enabled": false,
+      "tags": ["private"]
+    }
+  ]
+}

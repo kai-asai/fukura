@@ -1,0 +1,27 @@
+plugins {
+    id "com.android.application"
+    id "org.jetbrains.kotlin.android"
+}
+
+android {
+    namespace "com.kaiasai.fukura"
+    compileSdk 35
+
+    defaultConfig {
+        // 旧Android版から同一アプリとして更新し、非公開filesDirの辞書を引き継ぐ。
+        applicationId "dev.fsc.snippetexpander"
+        minSdk 26
+        targetSdk 35
+        versionCode 2
+        versionName "1.0.0"
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    kotlinOptions {
+        jvmTarget = "17"
+    }
+}

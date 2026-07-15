@@ -1,0 +1,67 @@
+name: Fukura
+options:
+  bundleIdPrefix: com.kaiasai
+  deploymentTarget:
+    iOS: "17.0"
+settings:
+  base:
+    SWIFT_VERSION: 5.0
+schemes:
+  Fukura:
+    build:
+      targets:
+        Fukura: all
+    run:
+      config: Debug
+    profile:
+      config: Release
+    analyze:
+      config: Debug
+    archive:
+      config: Release
+targets:
+  Fukura:
+    type: application
+    platform: iOS
+    sources: [FukuraApp]
+    settings:
+      base:
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        PRODUCT_BUNDLE_IDENTIFIER: com.kaiasai.fukura
+    entitlements:
+      path: FukuraApp/Fukura.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - group.com.kaiasai.fukura
+          - group.com.kaiasai.bon
+          - group.dev.fsc.snippetexpander
+    info:
+      path: Generated/Fukura-Info.plist
+      properties:
+        CFBundleDisplayName: fukura
+        UILaunchScreen: {}
+    dependencies:
+      - target: FukuraKeyboard
+  FukuraKeyboard:
+    type: app-extension
+    platform: iOS
+    sources: [FukuraKeyboardExtension]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.kaiasai.fukura.keyboard
+    entitlements:
+      path: FukuraKeyboardExtension/FukuraKeyboard.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - group.com.kaiasai.fukura
+    info:
+      path: Generated/FukuraKeyboard-Info.plist
+      properties:
+        CFBundleDisplayName: Fukura Keyboard
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.keyboard-service
+          NSExtensionPrincipalClass: "$(PRODUCT_MODULE_NAME).KeyboardViewController"
+          NSExtensionAttributes:
+            IsASCIICapable: true
+            PrimaryLanguage: ja-JP
+            RequestsOpenAccess: false
