@@ -64,13 +64,13 @@
 
 1. `ios/generate-project.sh` で `Fukura.xcodeproj` を生成する。
 2. `Fukura` スキームのApp本体と `FukuraKeyboard` Extensionがビルドできることを確認する。
-3. App本体とKeyboard Extensionに `group.com.kaiasai.fukura` を設定し、App本体に移行用の `group.com.kaiasai.bon` / `group.dev.fsc.snippetexpander` も設定する。
+3. App本体とKeyboard Extensionに `group.com.kaiasai.fukura` を設定する。
 4. App本体から `snippets.json` をインポートする。
 5. 設定アプリでfukura Keyboardを有効化し、テキスト入力欄で切り替える。
 6. `;mail` を入力し、候補をタップして展開できることを確認する。
 7. App本体の説明で「標準キーボードでは動作しない」制約が分かることを確認する。
-8. 旧App Groupにだけ辞書がある状態でfukura本体を起動し、新App Groupへコピーされることを確認する。
-9. キーボードを初めて表示した直後にShiftがオフであること。`;mail` をそのまま入力して候補が出ることを確認する。
-10. Shiftのオン/オフが `⇧●` / `⇧` で見分けられることを確認する。
-11. OSバージョンにかかわらず `needsInputModeSwitchKey` が真なら地球キーが表示され、タップで切り替え、長押しで入力モード一覧が使えることを確認する。
-12. 読み込みに失敗するJSONを選ぶとアラートでエラーが表示されることを確認する。
+8. キーボードを初めて表示した直後にShiftがオフであること。`;mail` をそのまま入力して候補が出ることを確認する。
+9. Shiftのオン/オフが `⇧●` / `⇧` で見分けられることを確認する。
+10. OSバージョンにかかわらず `needsInputModeSwitchKey` が真なら地球キーが表示され、タップで切り替え、長押しで入力モード一覧が使えることを確認する。
+11. 読み込みに失敗するJSONを選ぶとアラートでエラーが表示されることを確認する。
+12. App本体の「このアプリについて」から「プライバシーポリシー」をタップし、公開ページを開けることを確認する。

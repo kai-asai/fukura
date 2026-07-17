@@ -5,10 +5,6 @@ final class SnippetSharedStore: ObservableObject {
     @Published var message = "snippets.json をインポートしてください。"
 
     private let appGroupID = "group.com.kaiasai.fukura"
-    private let legacyAppGroupIDs = [
-        "group.com.kaiasai.bon",
-        "group.dev.fsc.snippetexpander"
-    ]
     private var containerURL: URL? {
         FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: appGroupID)
     }
@@ -20,7 +16,6 @@ final class SnippetSharedStore: ObservableObject {
     }
 
     func load() {
-        migrateLegacyDataIfNeeded()
         guard let snippetsURL, FileManager.default.fileExists(atPath: snippetsURL.path) else {
             return
         }
@@ -31,39 +26,6 @@ final class SnippetSharedStore: ObservableObject {
             message = "読み込み済み: \(snippets.count) 件。設定アプリでキーボードを有効化してください。"
         } catch {
             message = error.localizedDescription
-        }
-    }
-
-    private func migrateLegacyDataIfNeeded() {
-        guard let snippetsURL,
-              !FileManager.default.fileExists(atPath: snippetsURL.path) else {
-            return
-        }
-
-        for legacyAppGroupID in legacyAppGroupIDs {
-            guard let legacyContainerURL = FileManager.default.containerURL(
-                forSecurityApplicationGroupIdentifier: legacyAppGroupID
-            ) else {
-                continue
-            }
-            let legacySnippetsURL = legacyContainerURL.appendingPathComponent("snippets.json")
-            guard FileManager.default.fileExists(atPath: legacySnippetsURL.path) else {
-                continue
-            }
-
-            do {
-                try FileManager.default.copyItem(at: legacySnippetsURL, to: snippetsURL)
-                if let backupURL {
-                    let legacyBackupURL = legacyContainerURL.appendingPathComponent("snippets.backup.json")
-                    if FileManager.default.fileExists(atPath: legacyBackupURL.path) {
-                        _ = try? FileManager.default.removeItem(at: backupURL)
-                        try FileManager.default.copyItem(at: legacyBackupURL, to: backupURL)
-                    }
-                }
-            } catch {
-                message = "旧版からの辞書移行に失敗しました: \(error.localizedDescription)"
-            }
-            return
         }
     }
 
