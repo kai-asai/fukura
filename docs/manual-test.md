@@ -64,7 +64,7 @@
 
 1. `ios/generate-project.sh` で `Fukura.xcodeproj` を生成する。
 2. `Fukura` スキームのApp本体と `FukuraKeyboard` Extensionがビルドできることを確認する。
-3. App本体とKeyboard Extensionに `group.com.kaiasai.fukura` を設定し、App本体に移行用の `group.com.kaiasai.bon` / `group.dev.fsc.snippetexpander` も設定する。
+3. App本体とKeyboard Extensionに `group.com.kaiasai.fukura` を設定する。
 4. App本体から `snippets.json` をインポートする。
 5. 設定アプリでfukura Keyboardを有効化し、テキスト入力欄で切り替える。
 6. `;mail` を入力し、候補をタップして展開できることを確認する。
