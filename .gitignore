@@ -1,0 +1,12 @@
+# Local release workspace (archives, screenshots, credentials, and notes).
+release-local/
+
+# Xcode / Swift build products generated locally.
+ios/Fukura.xcodeproj/
+ios/Generated/
+ios/DerivedData/
+macos/.build/
+macos/dist/
+
+# macOS metadata.
+.DS_Store

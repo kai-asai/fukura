@@ -6,6 +6,8 @@ options:
 settings:
   base:
     SWIFT_VERSION: 5.0
+    MARKETING_VERSION: 1.0.0
+    CURRENT_PROJECT_VERSION: 1
 schemes:
   Fukura:
     build:
@@ -33,13 +35,20 @@ targets:
       properties:
         com.apple.security.application-groups:
           - group.com.kaiasai.fukura
-          - group.com.kaiasai.bon
-          - group.dev.fsc.snippetexpander
     info:
       path: Generated/Fukura-Info.plist
       properties:
         CFBundleDisplayName: fukura
         UILaunchScreen: {}
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        UISupportedInterfaceOrientations~ipad:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationPortraitUpsideDown
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
     dependencies:
       - target: FukuraKeyboard
   FukuraKeyboard:
