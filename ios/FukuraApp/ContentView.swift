@@ -15,6 +15,11 @@ struct ContentView: View {
                     Text("標準キーボードでは展開できません。設定 > 一般 > キーボード > キーボード > 新しいキーボードを追加 から Fukura Keyboard を追加してください。")
                         .font(.footnote).foregroundStyle(.secondary)
                 }
+                Section("このアプリについて") {
+                    Link(destination: URL(string: "https://github.com/kai-asai/fukura/blob/main/PRIVACY.md")!) {
+                        Label("プライバシーポリシー", systemImage: "hand.raised")
+                    }
+                }
                 Section("スニペット") {
                     ForEach(store.snippets) { snippet in
                         Button { editing = snippet } label: {
