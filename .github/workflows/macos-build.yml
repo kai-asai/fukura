@@ -1,0 +1,30 @@
+name: macOS build
+
+on:
+  pull_request:
+    paths:
+      - 'macos/**'
+      - 'shared/**'
+      - 'tests/**'
+      - '.github/workflows/macos-build.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test shared snippet logic
+        run: node --test tests/*.test.mjs
+      - name: Build debug executable
+        run: swift build --package-path macos
+      - name: Package ad-hoc signed app
+        run: bash macos/package-app.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: fukura-mac-diagnostic
+          path: macos/dist/fukura-mac.zip
+          if-no-files-found: error

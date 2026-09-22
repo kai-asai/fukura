@@ -7,6 +7,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let store = SnippetStore()
     private let expander = InputExpander()
     private let statusMenuItem = NSMenuItem(title: "起動中…", action: nil, keyEquivalent: "")
+    private let monitoringMenuItem = NSMenuItem(title: "入力監視: 準備中", action: nil, keyEquivalent: "")
     private let pauseMenuItem = NSMenuItem(title: "展開を一時停止", action: #selector(togglePaused), keyEquivalent: "p")
     private let launchAtLoginMenuItem = NSMenuItem(
         title: "ログイン時に起動",
@@ -22,6 +23,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         configureStatusItemIcon()
         configureMenu()
+        expander.onStatusChange = { [weak self] status in
+            self?.monitoringMenuItem.title = "入力監視: \(status)"
+        }
         updateLaunchAtLoginMenuItem()
         reloadSnippets()
         let shouldStartActive = resolveLegacyBonConflict()
@@ -58,12 +62,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let menu = NSMenu()
         statusMenuItem.isEnabled = false
         menu.addItem(statusMenuItem)
+        monitoringMenuItem.isEnabled = false
+        menu.addItem(monitoringMenuItem)
         menu.addItem(NSMenuItem.separator())
         menu.addItem(NSMenuItem(title: "スニペットを再読み込み", action: #selector(reloadSnippets), keyEquivalent: "r"))
         menu.addItem(NSMenuItem(title: "辞書を編集…", action: #selector(openDictionaryEditor), keyEquivalent: "e"))
         menu.addItem(NSMenuItem(title: "snippets.jsonを開く", action: #selector(openSnippetsFile), keyEquivalent: "o"))
         menu.addItem(NSMenuItem(title: "snippets.jsonをインポート…", action: #selector(importJSON), keyEquivalent: "i"))
         menu.addItem(pauseMenuItem)
+        menu.addItem(NSMenuItem(title: "入力監視を再開始", action: #selector(restartMonitoring), keyEquivalent: ""))
+        menu.addItem(NSMenuItem(title: "入力監視の診断情報…", action: #selector(showMonitoringDiagnostics), keyEquivalent: ""))
         menu.addItem(launchAtLoginMenuItem)
         menu.addItem(NSMenuItem(title: "プライバシー設定を開く", action: #selector(openPrivacySettings), keyEquivalent: ","))
         menu.addItem(NSMenuItem.separator())
@@ -73,6 +81,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func openDictionaryEditor() {
         editorWindowController.showEditor()
+    }
+
+    func applicationWillTerminate(_ notification: Notification) {
+        expander.stop()
+    }
+
+    @objc private func restartMonitoring() {
+        // start() preserves the user's paused state.
+        if !expander.start() {
+            showMonitoringDiagnostics()
+        }
+    }
+
+    @objc private func showMonitoringDiagnostics() {
+        showAlert(title: "入力監視の診断情報", message: expander.diagnosticReport())
     }
 
     @objc private func reloadSnippets() {
@@ -161,7 +184,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         setStatus("権限が必要です")
         showAlert(
             title: "権限が必要です",
-            message: "システム設定 > プライバシーとセキュリティ で Accessibility と Input Monitoring を許可してください。許可後にアプリを再起動してください。"
+            message: "システム設定 > プライバシーとセキュリティ で「デバイスの制御とデータアクセス」（以前のmacOSでは「アクセシビリティ」）と「入力監視」を確認してください。許可後は「入力監視を再開始」を選択してください。改善しない場合は「入力監視の診断情報」を確認してください。"
         )
     }
 
