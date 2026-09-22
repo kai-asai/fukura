@@ -13,10 +13,16 @@ let package = Package(
             targets: ["FukuraMac"]
         )
     ],
+    dependencies: [
+        .package(url: "https://github.com/sparkle-project/Sparkle", exact: "2.10.0")
+    ],
     targets: [
         .executableTarget(
             name: "FukuraMac",
-            path: "FukuraMac"
-        )
+            dependencies: [.product(name: "Sparkle", package: "Sparkle")],
+            path: "FukuraMac",
+            linkerSettings: [.unsafeFlags(["-Xlinker", "-rpath", "-Xlinker", "@executable_path/../Frameworks"])]
+        ),
+        .testTarget(name: "FukuraMacTests", dependencies: ["FukuraMac"], path: "Tests")
     ]
 )

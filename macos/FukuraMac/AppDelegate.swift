@@ -6,6 +6,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
     private let store = SnippetStore()
     private let expander = InputExpander()
+    private let appUpdater = AppUpdater()
     private let statusMenuItem = NSMenuItem(title: "起動中…", action: nil, keyEquivalent: "")
     private let monitoringMenuItem = NSMenuItem(title: "入力監視: 準備中", action: nil, keyEquivalent: "")
     private let pauseMenuItem = NSMenuItem(title: "展開を一時停止", action: #selector(togglePaused), keyEquivalent: "p")
@@ -23,6 +24,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         configureStatusItemIcon()
         configureMenu()
+        appUpdater.start()
         expander.onStatusChange = { [weak self] status in
             self?.monitoringMenuItem.title = "入力監視: \(status)"
         }
@@ -73,6 +75,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(NSMenuItem(title: "入力監視を再開始", action: #selector(restartMonitoring), keyEquivalent: ""))
         menu.addItem(NSMenuItem(title: "入力監視の診断情報…", action: #selector(showMonitoringDiagnostics), keyEquivalent: ""))
         menu.addItem(launchAtLoginMenuItem)
+        appUpdater.addMenuItems(to: menu)
         menu.addItem(NSMenuItem(title: "プライバシー設定を開く", action: #selector(openPrivacySettings), keyEquivalent: ","))
         menu.addItem(NSMenuItem.separator())
         menu.addItem(NSMenuItem(title: "終了", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
