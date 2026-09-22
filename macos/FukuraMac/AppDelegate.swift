@@ -6,7 +6,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
     private let store = SnippetStore()
     private let expander = InputExpander()
-    private let appUpdater = AppUpdater()
+    @MainActor private lazy var appUpdater = AppUpdater()
     private let statusMenuItem = NSMenuItem(title: "起動中…", action: nil, keyEquivalent: "")
     private let monitoringMenuItem = NSMenuItem(title: "入力監視: 準備中", action: nil, keyEquivalent: "")
     private let pauseMenuItem = NSMenuItem(title: "展開を一時停止", action: #selector(togglePaused), keyEquivalent: "p")
@@ -60,7 +60,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         button.toolTip = "fukura"
     }
 
-    private func configureMenu() {
+    @MainActor private func configureMenu() {
         let menu = NSMenu()
         statusMenuItem.isEnabled = false
         menu.addItem(statusMenuItem)
@@ -88,6 +88,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationWillTerminate(_ notification: Notification) {
         expander.stop()
+    }
+
+    func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        editorWindowController.confirmApplicationTermination() ? .terminateNow : .terminateCancel
     }
 
     @objc private func restartMonitoring() {
