@@ -346,6 +346,8 @@ final class SnippetEditorWindowController: NSWindowController, NSWindowDelegate,
 
     func windowShouldClose(_ sender: NSWindow) -> Bool { !dirty || confirmDiscard() }
 
+    func confirmApplicationTermination() -> Bool { !dirty || confirmDiscard() }
+
     private func confirmDiscard() -> Bool {
         let alert = NSAlert()
         alert.messageText = "未保存の変更があります"

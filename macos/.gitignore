@@ -1,4 +1,6 @@
 .build/
 dist/
+update-release/
+__pycache__/
 DerivedData/
 *.xcuserstate
