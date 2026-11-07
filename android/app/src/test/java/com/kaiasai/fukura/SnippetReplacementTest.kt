@@ -84,9 +84,16 @@ class SnippetReplacementTest {
     }
 
     @Test
-    fun bottomPaddingUsesTheLargerSystemInsetWithoutAddingThem() {
-        assertEquals(48, SnippetReplacement.bottomPadding(navigationBarBottom = 48, gestureBottom = 24))
-        assertEquals(64, SnippetReplacement.bottomPadding(navigationBarBottom = 20, gestureBottom = 64))
-        assertEquals(0, SnippetReplacement.bottomPadding(0, 0))
+    fun footerReserveStaysAtTheNavigationBarWhenViewPositionWouldOscillate() {
+        assertEquals(126, SnippetReplacement.reservedFooter(126))
+        assertEquals(0, SnippetReplacement.reservedFooter(-4))
+        val screenY = 1200
+        val viewHeight = 700
+        val windowHeight = 700
+        val navigation = 126
+        val viewBottom = screenY + viewHeight
+        val positionOverlap = (viewBottom - (windowHeight - navigation)).coerceAtLeast(0)
+        assertEquals(1326, positionOverlap)
+        assertEquals(126, SnippetReplacement.reservedFooter(navigation))
     }
 }

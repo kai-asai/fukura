@@ -47,6 +47,11 @@ internal object SnippetReplacement {
         )
     }
 
-    fun bottomPadding(navigationBarBottom: Int, gestureBottom: Int): Int =
-        maxOf(navigationBarBottom, gestureBottom, 0)
+    /**
+     * Space reserved under the keys for the system hide-keyboard footer.
+     * This is only the navigation-bar height. It must not depend on the
+     * keyboard view's own position or height, because that measurement
+     * changes when padding is applied and the window jumps.
+     */
+    fun reservedFooter(navigationBarHeight: Int): Int = navigationBarHeight.coerceAtLeast(0)
 }

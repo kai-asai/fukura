@@ -6,7 +6,6 @@ import android.os.Build
 import android.view.Gravity
 import android.view.KeyEvent
 import android.view.View
-import android.view.WindowInsets
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.ExtractedTextRequest
 import android.view.inputmethod.InputConnection
@@ -40,10 +39,7 @@ class SnippetKeyboardService : InputMethodService() {
         reloadSnippets()
         clearMatch()
         renderLayout()
-        keyboardRoot()?.requestApplyInsets()
     }
-
-    private fun keyboardRoot(): View? = rows.parent as? View
 
     override fun onFinishInput() {
         clearMatch()
@@ -77,14 +73,6 @@ class SnippetKeyboardService : InputMethodService() {
             setPadding(dp(4), dp(6), dp(4), dp(6))
         }
         applyBottomInset(root)
-        root.post {
-            val insets = root.rootWindowInsets ?: return@post
-            val bottom = bottomInsetPx(insets)
-            android.util.Log.i("fukura.ime", "keyboardBottomInset=$bottom")
-            if (root.paddingBottom != bottom) {
-                root.setPadding(root.paddingLeft, root.paddingTop, root.paddingRight, bottom)
-            }
-        }
 
         val candidateRow = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
@@ -416,43 +404,13 @@ class SnippetKeyboardService : InputMethodService() {
     }
 
     private fun applyBottomInset(view: View) {
-        view.setOnApplyWindowInsetsListener { _, insets ->
-            view.post { updateBottomPadding(view) }
-            insets
-        }
-        view.post { updateBottomPadding(view) }
-        view.requestApplyInsets()
-    }
-
-    private fun updateBottomPadding(view: View) {
-        val insets = view.rootWindowInsets
-        val reported = if (insets != null) bottomInsetPx(insets) else 0
-        val navigation = if (reported > 0) reported else systemNavigationHeight()
-        val location = IntArray(2)
-        view.getLocationOnScreen(location)
-        val screenHeight = view.rootView.height.takeIf { it > 0 } ?: resources.displayMetrics.heightPixels
-        val viewBottom = location[1] + view.height
-        val overlap = (viewBottom - (screenHeight - navigation)).coerceAtLeast(0)
-        val padding = maxOf(reported, overlap)
-        if (view.paddingBottom != padding) {
-            view.setPadding(view.paddingLeft, view.paddingTop, view.paddingRight, padding)
-        }
+        val footer = SnippetReplacement.reservedFooter(systemNavigationHeight())
+        view.setPadding(view.paddingLeft, view.paddingTop, view.paddingRight, dp(6) + footer)
     }
 
     private fun systemNavigationHeight(): Int {
         val id = resources.getIdentifier("navigation_bar_height", "dimen", "android")
         return if (id > 0) resources.getDimensionPixelSize(id) else 0
-    }
-
-    private fun bottomInsetPx(insets: WindowInsets): Int {
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            val navigation = insets.getInsetsIgnoringVisibility(WindowInsets.Type.navigationBars()).bottom
-            val gesture = insets.getInsetsIgnoringVisibility(WindowInsets.Type.mandatorySystemGestures()).bottom
-            SnippetReplacement.bottomPadding(navigation, gesture)
-        } else {
-            @Suppress("DEPRECATION")
-            insets.systemWindowInsetBottom
-        }
     }
 
     private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
