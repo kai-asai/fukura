@@ -2,6 +2,16 @@
 
 Windows 10 / 11向けのタスクトレイ常駐アプリです。macOS版と同じ `snippets.json` を利用でき、辞書編集・インポート・ログイン時起動・一時停止に対応します。
 
+## テスト
+
+辞書の読み書きと照合はWindows Formsに依存しません。macOS / Linux上の.NET 8でも実行できます。
+
+```powershell
+dotnet test .\Fukura.Core.Tests\Fukura.Core.Tests.csproj
+```
+
+キーボードフック、タスクトレイ、辞書画面の起動確認はWindows上で `FukuraWindows.csproj` をビルドして行います。
+
 ## 開発実行
 
 .NET 8 SDKをインストールしたWindowsで実行します。

@@ -12,7 +12,18 @@
     <Version>1.0.0</Version>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Remove="Fukura.Core/**" />
+    <Compile Remove="Fukura.Core.Tests/**" />
+    <EmbeddedResource Remove="Fukura.Core/**" />
+    <EmbeddedResource Remove="Fukura.Core.Tests/**" />
+    <None Remove="Fukura.Core/**" />
+    <None Remove="Fukura.Core.Tests/**" />
+  </ItemGroup>
+  <ItemGroup>
     <EmbeddedResource Include="Resources\fukura-tray-light.ico" />
     <EmbeddedResource Include="Resources\fukura-tray-dark.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="Fukura.Core\Fukura.Core.csproj" />
   </ItemGroup>
 </Project>

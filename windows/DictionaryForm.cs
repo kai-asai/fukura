@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using Fukura.Core;
 
 namespace FukuraWindows;
 
@@ -48,7 +49,7 @@ internal sealed class DictionaryForm : Form
 
     private void BuildUi()
     {
-        var split = new SplitContainer { Dock = DockStyle.Fill, SplitterDistance = 285, FixedPanel = FixedPanel.Panel1 };
+        var split = new SplitContainer { Dock = DockStyle.Fill, FixedPanel = FixedPanel.Panel1 };
         Controls.Add(split);
 
         var sidebar = new TableLayoutPanel { Dock = DockStyle.Fill, Padding = new Padding(12), RowCount = 3, ColumnCount = 1 };
@@ -107,6 +108,12 @@ internal sealed class DictionaryForm : Form
         _save.Click += (_, _) => SaveChanges();
         revert.Click += (_, _) => { if (!_dirty || ConfirmDiscard()) ReloadFromStore(); };
         export.Click += (_, _) => ExportJson();
+        Load += (_, _) =>
+        {
+            var available = split.Width - split.Panel2MinSize - split.SplitterWidth;
+            if (available > split.Panel1MinSize)
+                split.SplitterDistance = Math.Min(285, available);
+        };
         FormClosing += OnFormClosing;
         KeyPreview = true;
         KeyDown += (_, args) => { if (args.Control && args.KeyCode == Keys.S) { SaveChanges(); args.SuppressKeyPress = true; } };

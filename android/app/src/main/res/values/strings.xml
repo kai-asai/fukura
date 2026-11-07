@@ -2,4 +2,31 @@
 <resources>
     <string name="app_name">fukura</string>
     <string name="keyboard_name">fukura Keyboard</string>
+    <string name="section_about">このアプリについて</string>
+    <string name="section_snippets">スニペット</string>
+    <string name="privacy_policy">プライバシーポリシー</string>
+    <string name="enable_keyboard">キーボードを有効化</string>
+    <string name="choose_input_method">入力方法を選択</string>
+    <string name="export_json">snippets.json を書き出す</string>
+    <string name="import_json">snippets.json をインポート</string>
+    <string name="add_snippet">スニペットを追加</string>
+    <string name="editor_title">辞書を編集</string>
+    <string name="cancel">キャンセル</string>
+    <string name="save">保存</string>
+    <string name="trigger_label">トリガー</string>
+    <string name="body_label">展開する文章</string>
+    <string name="body_hint">改行はEnterで入力できます。\\nを書く必要はありません。</string>
+    <string name="enabled_toggle">このスニペットを有効にする</string>
+    <string name="stopped">停止中</string>
+    <string name="cannot_operate">操作できません</string>
+    <string name="delete_snippet">スニペットを削除</string>
+    <string name="candidate_none">候補なし</string>
+    <string name="candidate_empty_dictionary">辞書をfukura本体で設定してください</string>
+    <string name="space_key">空白</string>
+    <string name="return_key">改行</string>
+    <string name="next_keyboard">次のキーボード</string>
+    <string name="snippet_mark">スニペット記号</string>
+    <string name="footnote">標準キーボードでは展開できません。下の項目から fukura Keyboard を有効にし、入力方法で選んでください。</string>
+    <string name="delete_confirm">「%1$s」を削除しますか？</string>
+    <string name="ok">OK</string>
 </resources>

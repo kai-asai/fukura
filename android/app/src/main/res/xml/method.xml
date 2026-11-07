@@ -3,4 +3,11 @@
     android:label="@string/keyboard_name"
     android:settingsActivity="com.kaiasai.fukura.SnippetImportActivity"
     android:supportsSwitchingToNextInputMethod="true"
-    android:isDefault="false" />
+    android:isDefault="false">
+    <subtype
+        android:label="@string/keyboard_name"
+        android:icon="@mipmap/ic_launcher"
+        android:imeSubtypeLocale="ja_JP"
+        android:imeSubtypeMode="keyboard"
+        android:isAsciiCapable="true" />
+</input-method>

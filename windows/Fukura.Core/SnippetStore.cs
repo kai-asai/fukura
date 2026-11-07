@@ -1,14 +1,14 @@
 using System.Text;
 using System.Text.Json;
 
-namespace FukuraWindows;
+namespace Fukura.Core;
 
-internal sealed class SnippetStore
+public sealed class SnippetStore
 {
-    internal const int MaxJsonBytes = 512 * 1024;
-    internal const int MaxSnippets = 500;
-    internal const int MaxTriggerLength = 64;
-    internal const int MaxBodyLength = 8000;
+    public const int MaxJsonBytes = 512 * 1024;
+    public const int MaxSnippets = 500;
+    public const int MaxTriggerLength = 64;
+    public const int MaxBodyLength = 8000;
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -18,9 +18,9 @@ internal sealed class SnippetStore
         WriteIndented = true
     };
 
-    public string DirectoryPath { get; } = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "fukura");
+    private readonly IReadOnlyList<string> _legacyDirectories;
+
+    public string DirectoryPath { get; }
     public string FilePath => Path.Combine(DirectoryPath, "snippets.json");
     public string BackupPath => Path.Combine(DirectoryPath, "snippets.backup.json");
     public bool WasCreatedOnLoad { get; private set; }
@@ -30,6 +30,17 @@ internal sealed class SnippetStore
         .OrderByDescending(item => item.Trigger.Length)
         .ThenBy(item => item.Trigger, StringComparer.Ordinal)
         .ToList();
+
+    public SnippetStore(string? directoryPath = null, IEnumerable<string>? legacyDirectories = null)
+    {
+        var localApplicationData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+        DirectoryPath = directoryPath ?? Path.Combine(localApplicationData, "fukura");
+        _legacyDirectories = legacyDirectories?.ToList() ??
+        [
+            Path.Combine(localApplicationData, "bon"),
+            Path.Combine(localApplicationData, "SnippetExpander")
+        ];
+    }
 
     public void Load()
     {
@@ -47,10 +58,8 @@ internal sealed class SnippetStore
     {
         if (File.Exists(FilePath)) return;
 
-        var localApplicationData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-        foreach (var legacyName in new[] { "bon", "SnippetExpander" })
+        foreach (var legacyDirectory in _legacyDirectories)
         {
-            var legacyDirectory = Path.Combine(localApplicationData, legacyName);
             var legacyFile = Path.Combine(legacyDirectory, "snippets.json");
             if (!File.Exists(legacyFile)) continue;
 

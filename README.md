@@ -6,7 +6,7 @@ fukuraは、短いトリガーから定型文をすばやく入力できる、�
 
 macOS / Windowsではメニューバー・タスクトレイに常駐し、iPhone / iPad / Androidではカスタムキーボードとして動作します。
 
-> Status: 初回公開に向けて準備中です。ストア版・署名済みバイナリは公開後にGitHub Releasesから案内します。
+> Status: iOS 1.0（build 2）は App Store 公開済みです。このブランチの iOS ソースはそのビルドに固定しています。macOS 1.0.0 は GitHub Release の macOS 版です。Windows と Android のリリース準備を進めています。
 
 ## 特長
 
@@ -46,7 +46,10 @@ docs/      手動テストと公開資料
 
 ```bash
 node --test tests/*.test.mjs
+dotnet test windows/Fukura.Core.Tests/Fukura.Core.Tests.csproj
 ```
+
+Windowsの辞書読み書きと照合は、Windows Forms なしでテストできます。macOS と iOS のアプリ本体はこのブランチでは変更していません。iOS は 1.0 (2) のままです。
 
 ### macOS
 
@@ -73,7 +76,7 @@ dotnet build windows/FukuraWindows.csproj
 JDK 17、Android SDK、Gradle 8系が必要です。
 
 ```bash
-gradle -p android assembleDebug
+android/gradlew -p android test assembleDebug
 ```
 
 ### iOS
@@ -86,7 +89,7 @@ ios/generate-project.sh
 open ios/Fukura.xcodeproj
 ```
 
-実機配布ではTeam、App ID、App Groups、署名を自身のApple Developerアカウントへ合わせてください。
+公開済みの 1.0 (2) です。Team、App ID、App Groups、署名は Apple Developer アカウント側の設定です。このブランチでは iOS の機能やバージョンを変えません。
 
 ## 辞書形式
 

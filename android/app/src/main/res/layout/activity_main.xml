@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/grouped_background"
+    android:fitsSystemWindows="true"
+    android:orientation="vertical">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:paddingStart="20dp"
+        android:paddingTop="8dp"
+        android:paddingEnd="12dp"
+        android:paddingBottom="4dp">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/app_name"
+            android:textColor="@color/label_primary"
+            android:textSize="34sp"
+            android:textStyle="bold" />
+
+        <ImageButton
+            android:id="@+id/import_button"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:background="@android:color/transparent"
+            android:contentDescription="@string/import_json"
+            android:padding="8dp"
+            android:src="@drawable/ic_import" />
+
+        <ImageButton
+            android:id="@+id/add_button"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:background="@android:color/transparent"
+            android:contentDescription="@string/add_snippet"
+            android:padding="8dp"
+            android:src="@drawable/ic_add" />
+    </LinearLayout>
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:clipToPadding="false"
+        android:fillViewport="true"
+        android:paddingBottom="24dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingTop="8dp">
+
+            <LinearLayout style="@style/Card" android:padding="16dp">
+
+                <TextView
+                    android:id="@+id/status_message"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textColor="@color/label_primary"
+                    android:textSize="17sp" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="@string/footnote"
+                    android:textColor="@color/label_secondary"
+                    android:textSize="13sp" />
+            </LinearLayout>
+
+            <TextView
+                style="@style/SectionLabel"
+                android:text="@string/section_about" />
+
+            <LinearLayout
+                android:id="@+id/about_card"
+                style="@style/Card" />
+
+            <TextView
+                style="@style/SectionLabel"
+                android:text="@string/section_snippets" />
+
+            <LinearLayout
+                android:id="@+id/snippet_list"
+                style="@style/Card" />
+        </LinearLayout>
+    </ScrollView>
+</LinearLayout>

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="AppTheme" parent="android:style/Theme.Material.NoActionBar">
+        <item name="android:statusBarColor">@color/grouped_background</item>
+        <item name="android:navigationBarColor">@color/grouped_background</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowBackground">@color/grouped_background</item>
+        <item name="android:colorAccent">@color/link_blue</item>
+    </style>
+</resources>
