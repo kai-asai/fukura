@@ -3,8 +3,11 @@ package com.kaiasai.fukura
 import android.content.Context
 import android.inputmethodservice.InputMethodService
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import android.view.Gravity
 import android.view.KeyEvent
+import android.view.MotionEvent
 import android.view.View
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.ExtractedTextRequest
@@ -27,6 +30,9 @@ class SnippetKeyboardService : InputMethodService() {
     private var ignoreSelectionUpdates = 0
     private lateinit var candidate: TextView
     private lateinit var rows: LinearLayout
+    private val deleteHandler = Handler(Looper.getMainLooper())
+    private var deleteHold = BackwardDelete.Hold()
+    private var deleteGeneration = 0
 
     override fun onStartInput(attribute: EditorInfo?, restarting: Boolean) {
         super.onStartInput(attribute, restarting)
@@ -42,8 +48,24 @@ class SnippetKeyboardService : InputMethodService() {
     }
 
     override fun onFinishInput() {
+        stopDeleteHold()
         clearMatch()
         super.onFinishInput()
+    }
+
+    override fun onFinishInputView(finishingInput: Boolean) {
+        stopDeleteHold()
+        super.onFinishInputView(finishingInput)
+    }
+
+    override fun onWindowHidden() {
+        stopDeleteHold()
+        super.onWindowHidden()
+    }
+
+    override fun onDestroy() {
+        stopDeleteHold()
+        super.onDestroy()
     }
 
     override fun onUpdateSelection(
@@ -177,18 +199,26 @@ class SnippetKeyboardService : InputMethodService() {
         trailingAction: () -> Unit
     ) {
         val row = row()
-        row.addView(key(leadingLabel, 1.35f, KeyStyle.SPECIAL, leadingAction))
+        row.addView(key(leadingLabel, 1.35f, KeyStyle.SPECIAL) { leadingAction() })
         characters.forEach { character ->
             val label = if (layout == Layout.LETTERS && isShifted) character.uppercase() else character
             row.addView(key(label) { typeCharacter(character) })
         }
-        row.addView(key(trailingLabel, 1.35f, KeyStyle.SPECIAL, trailingAction))
+        row.addView(
+            key(
+                trailingLabel,
+                1.35f,
+                KeyStyle.SPECIAL,
+                repeatDelete = trailingLabel == "⌫",
+                action = trailingAction
+            )
+        )
         rows.addView(row)
     }
 
     private fun addBottomRow(layoutLabel: String, layoutAction: () -> Unit) {
         val row = row()
-        row.addView(key(layoutLabel, 1.25f, KeyStyle.SPECIAL, layoutAction))
+        row.addView(key(layoutLabel, 1.25f, KeyStyle.SPECIAL) { layoutAction() })
 
         val canSwitch = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
             shouldOfferSwitchingToNextInputMethod()
@@ -212,6 +242,7 @@ class SnippetKeyboardService : InputMethodService() {
         label: String,
         weight: Float = 1f,
         style: KeyStyle = KeyStyle.NORMAL,
+        repeatDelete: Boolean = false,
         action: () -> Unit
     ) = TextView(this).apply {
         text = label
@@ -240,9 +271,52 @@ class SnippetKeyboardService : InputMethodService() {
         layoutParams = LinearLayout.LayoutParams(0, dp(42), weight).apply {
             setMargins(dp(3), dp(4), dp(3), dp(4))
         }
-        setOnClickListener { action() }
+        if (repeatDelete) {
+            setOnTouchListener { view, event -> handleDeleteTouch(view, event) }
+        } else {
+            setOnClickListener { action() }
+        }
         if (label == "🌐") contentDescription = getString(R.string.next_keyboard)
         if (label == ";") contentDescription = getString(R.string.snippet_mark)
+    }
+
+    private fun handleDeleteTouch(view: View, event: MotionEvent): Boolean {
+        when (event.actionMasked) {
+            MotionEvent.ACTION_DOWN -> {
+                view.isPressed = true
+                startDeleteHold()
+            }
+            MotionEvent.ACTION_MOVE -> {
+                val outside = event.x < 0 || event.y < 0 || event.x >= view.width || event.y >= view.height
+                if (outside) stopDeleteHold()
+            }
+            MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                view.isPressed = false
+                stopDeleteHold()
+            }
+        }
+        return true
+    }
+
+    private fun startDeleteHold() {
+        val generation = ++deleteGeneration
+        deleteHold = BackwardDelete.hold(BackwardDelete.HoldSignal.DOWN)
+        deleteBackward()
+        deleteHandler.postDelayed({
+            repeatDelete(generation)
+        }, BackwardDelete.REPEAT_START_DELAY_MS)
+    }
+
+    private fun repeatDelete(generation: Int) {
+        if (generation != deleteGeneration || !deleteHold.active) return
+        deleteBackward()
+        deleteHandler.postDelayed({ repeatDelete(generation) }, BackwardDelete.REPEAT_INTERVAL_MS)
+    }
+
+    private fun stopDeleteHold() {
+        deleteGeneration++
+        deleteHold = BackwardDelete.hold(BackwardDelete.HoldSignal.UP)
+        deleteHandler.removeCallbacksAndMessages(null)
     }
 
     private fun typeCharacter(character: String) {
@@ -259,12 +333,43 @@ class SnippetKeyboardService : InputMethodService() {
 
     private fun deleteBackward() {
         reloadSnippets()
-        edit { connection ->
+        val connection = currentInputConnection ?: return
+        val before = connection.getTextBeforeCursor(64, 0)?.toString()
+        val selected = connection.getSelectedText(0)?.toString()
+        val extracted = connection.getExtractedText(extractedTextRequest(), 0)
+        val action = BackwardDelete.plan(
+            textBeforeCursor = before,
+            selectedText = selected,
+            selectionStart = extracted?.selectionStart ?: -1,
+            selectionEnd = extracted?.selectionEnd ?: -1
+        )
+        if (action.mode == BackwardDelete.Mode.NONE) return
+        ignoreSelectionUpdates++
+        connection.beginBatchEdit()
+        try {
             connection.finishComposingText()
-            connection.deleteSurroundingText(1, 0)
+            when (action.mode) {
+                BackwardDelete.Mode.NONE -> Unit
+                BackwardDelete.Mode.SURROUNDING -> connection.deleteSurroundingText(action.deleteBefore, 0)
+                BackwardDelete.Mode.SELECTION -> {
+                    val replaced = connection.commitText("", 1)
+                    if (!replaced && action.selectionEnd > action.selectionStart) {
+                        connection.setComposingRegion(action.selectionStart, action.selectionEnd)
+                        connection.commitText("", 1)
+                    }
+                }
+            }
+        } finally {
+            connection.endBatchEdit()
         }
-        pendingSnippet = matcher.backspace()
-        updateCandidate()
+        when (action.buffer) {
+            BackwardDelete.BufferUpdate.UNCHANGED -> Unit
+            BackwardDelete.BufferUpdate.DROP -> {
+                pendingSnippet = matcher.backspace(action.deleteBefore)
+                updateCandidate()
+            }
+            BackwardDelete.BufferUpdate.RESET -> clearMatch()
+        }
     }
 
     private fun edit(block: (InputConnection) -> Unit) {
@@ -404,7 +509,10 @@ class SnippetKeyboardService : InputMethodService() {
     }
 
     private fun applyBottomInset(view: View) {
-        val footer = SnippetReplacement.reservedFooter(systemNavigationHeight())
+        val footer = SnippetReplacement.reservedFooter(
+            systemNavigationHeight(),
+            dp(SnippetReplacement.FOOTER_BREATHING_DP)
+        )
         view.setPadding(view.paddingLeft, view.paddingTop, view.paddingRight, dp(6) + footer)
     }
 

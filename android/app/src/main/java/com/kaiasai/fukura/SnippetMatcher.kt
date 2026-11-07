@@ -13,8 +13,10 @@ class SnippetMatcher(snippets: List<Snippet>) {
         return currentMatch()
     }
 
-    fun backspace(): Snippet? {
-        if (buffer.isNotEmpty()) buffer = buffer.dropLast(1)
+    fun backspace(codeUnits: Int = 1): Snippet? {
+        if (codeUnits > 0 && buffer.isNotEmpty()) {
+            buffer = buffer.dropLast(codeUnits.coerceAtMost(buffer.length))
+        }
         return currentMatch()
     }
 

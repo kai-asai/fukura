@@ -95,5 +95,7 @@ class SnippetReplacementTest {
         val positionOverlap = (viewBottom - (windowHeight - navigation)).coerceAtLeast(0)
         assertEquals(1326, positionOverlap)
         assertEquals(126, SnippetReplacement.reservedFooter(navigation))
+        assertEquals(158, SnippetReplacement.reservedFooter(navigation, breathingPx = 32))
+        assertEquals(32, SnippetReplacement.reservedFooter(0, breathingPx = 32))
     }
 }

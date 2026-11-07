@@ -47,11 +47,15 @@ internal object SnippetReplacement {
         )
     }
 
+    /** Fixed extra gap above the system footer. Not derived from the keyboard's position. */
+    const val FOOTER_BREATHING_DP = 12
+
     /**
      * Space reserved under the keys for the system hide-keyboard footer.
-     * This is only the navigation-bar height. It must not depend on the
-     * keyboard view's own position or height, because that measurement
+     * Navigation-bar height plus a fixed breathing gap. It must not depend
+     * on the keyboard view's own position or height, because that measurement
      * changes when padding is applied and the window jumps.
      */
-    fun reservedFooter(navigationBarHeight: Int): Int = navigationBarHeight.coerceAtLeast(0)
+    fun reservedFooter(navigationBarHeight: Int, breathingPx: Int = 0): Int =
+        navigationBarHeight.coerceAtLeast(0) + breathingPx.coerceAtLeast(0)
 }
