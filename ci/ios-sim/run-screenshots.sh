@@ -24,13 +24,19 @@ fi
 ios/generate-project.sh
 
 pick_xcode() {
-  local app
-  app="$(ls -d /Applications/Xcode_16*.app 2>/dev/null | sort | tail -1 || true)"
-  if [ -z "$app" ] && [ -d /Applications/Xcode.app ]; then
-    app=/Applications/Xcode.app
-  fi
-  if [ -n "$app" ]; then
-    sudo xcode-select -s "$app/Contents/Developer" || true
+  local app best="" best_ver="" ver
+  for app in /Applications/Xcode*.app; do
+    [ -x "$app/Contents/Developer/usr/bin/xcodebuild" ] || continue
+    ver="$("$app/Contents/Developer/usr/bin/xcodebuild" -version | awk 'NR==1 { print $2 }')"
+    echo "found $app $ver"
+    if [ -z "$best_ver" ] || [ "$(printf '%s\n%s\n' "$best_ver" "$ver" | sort -V | tail -1)" = "$ver" ]; then
+      best="$app"
+      best_ver="$ver"
+    fi
+  done
+  if [ -n "$best" ]; then
+    sudo xcode-select -s "$best/Contents/Developer" || true
+    echo "selected $best"
   fi
   xcodebuild -version | tee "$OUT/xcode-version.txt"
 }
@@ -59,8 +65,9 @@ DERIVED="$OUT/Derived"
 xcodebuild \
   -project ios/Fukura.xcodeproj \
   -scheme Fukura \
+  -sdk iphonesimulator \
   -derivedDataPath "$DERIVED" \
-  -destination "platform=iOS Simulator,id=$UDID" \
+  -destination "generic/platform=iOS Simulator" \
   -configuration Debug \
   CODE_SIGN_IDENTITY="-" \
   CODE_SIGNING_REQUIRED=NO \
@@ -106,6 +113,7 @@ set +e
 xcodebuild \
   -project ios/Fukura.xcodeproj \
   -scheme Fukura \
+  -sdk iphonesimulator \
   -derivedDataPath "$DERIVED" \
   -destination "platform=iOS Simulator,id=$UDID" \
   -configuration Debug \
