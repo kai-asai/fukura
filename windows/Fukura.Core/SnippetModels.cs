@@ -1,8 +1,8 @@
 using System.Text.Json.Serialization;
 
-namespace FukuraWindows;
+namespace Fukura.Core;
 
-internal sealed class SnippetFile
+public sealed class SnippetFile
 {
     [JsonPropertyName("version")]
     public int Version { get; set; } = 1;
@@ -15,7 +15,7 @@ internal sealed class SnippetFile
     public List<Snippet> Snippets { get; set; } = [];
 }
 
-internal sealed class Snippet
+public sealed class Snippet
 {
     [JsonPropertyName("id")]
     public string Id { get; set; } = "";

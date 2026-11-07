@@ -6,6 +6,8 @@
 - ビルド成果物はGitへコミットせず、タグに対応するGitHub Releaseへ添付します。
 - 署名鍵、証明書、APIキー、プロビジョニング情報をコミットしません。
 - Pull Requestでは秘密情報を使わないビルドとテストだけを実行します。
+- GitHub Actionsは共通テスト、Windows辞書コア、Windowsアプリのビルド、Androidの `test assembleDebug assembleRelease`、Swiftパッケージテスト、署名なしのiOSコンパイルを実行します。
+- Androidのリリース署名は `FUKURA_UPLOAD_STORE_FILE`、`FUKURA_UPLOAD_STORE_PASSWORD`、`FUKURA_UPLOAD_KEY_ALIAS`、`FUKURA_UPLOAD_KEY_PASSWORD` がCIシークレットまたは手元の環境にあるときだけ有効です。無い場合のrelease成果物は未署名です。
 - 署名・公証・ストア提出は保護されたGitHub Environmentまたは管理されたローカル環境で行います。
 
 ## バージョン公開

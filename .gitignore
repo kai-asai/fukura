@@ -7,6 +7,7 @@ ios/Generated/
 ios/DerivedData/
 macos/.build/
 macos/dist/
+shared/FukuraCore/.build/
 
 # macOS metadata.
 .DS_Store

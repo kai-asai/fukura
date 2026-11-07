@@ -25,6 +25,9 @@ class SnippetImportActivity : Activity() {
         val content = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL; setPadding(32, 32, 32, 32)
             addView(TextView(this@SnippetImportActivity).apply { text = "fukura"; textSize = 24f })
+            addView(TextView(this@SnippetImportActivity).apply {
+                text = "展開は fukura Keyboard を選んでいる入力欄だけで動きます。ほかのキーボードの入力は監視せず、システム全体の置換はしません。"
+            })
             addView(TextView(this@SnippetImportActivity).apply { text = "本文は普通の複数行入力です。改行用の \\n を書く必要はありません。" })
             summary = TextView(this@SnippetImportActivity); addView(summary)
             addView(button("＋ スニペットを追加") { editSnippet(null) })

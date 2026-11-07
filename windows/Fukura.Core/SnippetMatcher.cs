@@ -1,6 +1,6 @@
-namespace FukuraWindows;
+namespace Fukura.Core;
 
-internal sealed class SnippetMatcher
+public sealed class SnippetMatcher
 {
     private IReadOnlyList<Snippet> _snippets = [];
     private string _buffer = "";
@@ -8,7 +8,10 @@ internal sealed class SnippetMatcher
 
     public void Update(IReadOnlyList<Snippet> snippets)
     {
-        _snippets = snippets.OrderByDescending(item => item.Trigger.Length).ThenBy(item => item.Trigger).ToList();
+        _snippets = snippets
+            .OrderByDescending(item => item.Trigger.Length)
+            .ThenBy(item => item.Trigger, StringComparer.Ordinal)
+            .ToList();
         _maxTriggerLength = _snippets.Count == 0 ? 0 : _snippets.Max(item => item.Trigger.Length);
         Reset();
     }

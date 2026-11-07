@@ -11,6 +11,7 @@ import android.view.inputmethod.InputMethodManager
 import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.TextView
+import java.io.File
 
 class SnippetKeyboardService : InputMethodService() {
     private enum class Layout { LETTERS, NUMBERS, SYMBOLS }
@@ -18,6 +19,7 @@ class SnippetKeyboardService : InputMethodService() {
     private var matcher = SnippetMatcher(emptyList())
     private var hasSnippets = false
     private var pendingSnippet: Snippet? = null
+    private var dictionaryStamp = Long.MIN_VALUE
     private var layout = Layout.LETTERS
     private var isShifted = false
     private lateinit var candidate: TextView
@@ -75,10 +77,15 @@ class SnippetKeyboardService : InputMethodService() {
     }
 
     private fun reloadSnippets() {
+        val file = File(filesDir, "snippets.json")
+        val stamp = if (file.exists()) file.lastModified() xor file.length() else 0L
+        if (stamp == dictionaryStamp) return
         val snippets = runCatching { SnippetRepository(this).load().snippets }
             .getOrElse { emptyList() }
+        dictionaryStamp = if (file.exists()) file.lastModified() xor file.length() else stamp
         matcher = SnippetMatcher(snippets)
         hasSnippets = snippets.any { it.enabled }
+        pendingSnippet = null
     }
 
     private fun renderLayout() {
@@ -187,6 +194,7 @@ class SnippetKeyboardService : InputMethodService() {
     }
 
     private fun typeCharacter(character: String) {
+        reloadSnippets()
         val text = if (layout == Layout.LETTERS && isShifted) character.uppercase() else character
         currentInputConnection?.commitText(text, 1)
         pendingSnippet = matcher.push(text)
@@ -198,8 +206,15 @@ class SnippetKeyboardService : InputMethodService() {
     }
 
     private fun deleteBackward() {
-        currentInputConnection?.deleteSurroundingText(1, 0)
-        clearMatch()
+        reloadSnippets()
+        sendKey(KeyEvent.KEYCODE_DEL)
+        pendingSnippet = matcher.backspace()
+        updateCandidate()
+    }
+
+    private fun sendKey(keyCode: Int) {
+        currentInputConnection?.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, keyCode))
+        currentInputConnection?.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP, keyCode))
     }
 
     private fun insertSpace() {
@@ -266,7 +281,7 @@ class SnippetKeyboardService : InputMethodService() {
 
     private fun expandPendingSnippet() {
         val snippet = pendingSnippet ?: return
-        currentInputConnection?.deleteSurroundingText(snippet.trigger.length, 0)
+        repeat(snippet.trigger.length) { sendKey(KeyEvent.KEYCODE_DEL) }
         currentInputConnection?.commitText(snippet.body, 1)
         clearMatch()
     }

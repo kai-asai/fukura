@@ -8,13 +8,17 @@ class SnippetMatcher(snippets: List<Snippet>) {
     private var buffer = ""
 
     fun push(text: String): Snippet? {
+        if (maxTriggerLength == 0 || text.isEmpty()) return currentMatch()
         buffer = (buffer + text).takeLast(maxTriggerLength)
-        val match = enabled.firstOrNull { buffer.endsWith(it.trigger) }
-        if (match != null) {
-            buffer = ""
-        }
-        return match
+        return currentMatch()
     }
+
+    fun backspace(): Snippet? {
+        if (buffer.isNotEmpty()) buffer = buffer.dropLast(1)
+        return currentMatch()
+    }
+
+    fun currentMatch(): Snippet? = enabled.firstOrNull { buffer.endsWith(it.trigger) }
 
     fun reset() {
         buffer = ""

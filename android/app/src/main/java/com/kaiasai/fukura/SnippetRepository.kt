@@ -7,47 +7,61 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.time.OffsetDateTime
 
-class SnippetRepository(private val context: Context) {
-    private val file = File(context.filesDir, "snippets.json")
-    private val backup = File(context.filesDir, "snippets.backup.json")
+class SnippetRepository private constructor(
+    private val directory: File,
+    private val context: Context?
+) {
+    constructor(context: Context) : this(context.filesDir, context)
+
+    constructor(directory: File) : this(directory, null)
+
+    private val file = File(directory, "snippets.json")
+    private val backup = File(directory, "snippets.backup.json")
 
     fun load(): SnippetFile {
         if (!file.exists()) {
+            directory.mkdirs()
             file.writeText(defaultJson)
         }
-        if (file.length() > MAX_JSON_BYTES) {
-            throw SnippetValidationException("snippets.json は ${MAX_JSON_BYTES} bytes 以下にしてください。")
+        if (file.length() > SnippetParser.MAX_JSON_BYTES) {
+            throw SnippetValidationException("snippets.json は ${SnippetParser.MAX_JSON_BYTES} bytes 以下にしてください。")
         }
         return SnippetParser.parse(file.readText())
     }
 
     fun importFrom(uri: Uri): SnippetFile {
-        if (file.exists()) {
-            file.copyTo(backup, overwrite = true)
-        }
-
-        context.contentResolver.openAssetFileDescriptor(uri, "r")?.use { descriptor ->
-            if (descriptor.length > MAX_JSON_BYTES) {
-                throw SnippetValidationException("snippets.json は ${MAX_JSON_BYTES} bytes 以下にしてください。")
+        val currentContext = context ?: throw SnippetValidationException("ファイルを読み込めません。")
+        currentContext.contentResolver.openAssetFileDescriptor(uri, "r")?.use { descriptor ->
+            if (descriptor.length > SnippetParser.MAX_JSON_BYTES) {
+                throw SnippetValidationException("snippets.json は ${SnippetParser.MAX_JSON_BYTES} bytes 以下にしてください。")
             }
         }
-        val json = context.contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() }
+        val json = currentContext.contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() }
             ?: throw SnippetValidationException("ファイルを読み込めません。")
-        if (json.toByteArray().size > MAX_JSON_BYTES) {
-            throw SnippetValidationException("snippets.json は ${MAX_JSON_BYTES} bytes 以下にしてください。")
-        }
+        return importText(json)
+    }
+
+    fun importText(json: String): SnippetFile {
         val parsed = SnippetParser.parse(json)
+        directory.mkdirs()
+        if (file.exists()) file.copyTo(backup, overwrite = true)
         file.writeText(json)
         return parsed
     }
 
     fun exportTo(uri: Uri) {
+        val currentContext = context ?: throw SnippetValidationException("書き出し先を開けません。")
+        val json = exportText()
+        currentContext.contentResolver.openOutputStream(uri, "wt")?.bufferedWriter()?.use { writer ->
+            writer.write(json)
+        } ?: throw SnippetValidationException("書き出し先を開けません。")
+    }
+
+    fun exportText(): String {
         load()
         val json = file.readText()
         SnippetParser.parse(json)
-        context.contentResolver.openOutputStream(uri, "wt")?.bufferedWriter()?.use { writer ->
-            writer.write(json)
-        } ?: throw SnippetValidationException("書き出し先を開けません。")
+        return json
     }
 
     fun save(snippets: List<Snippet>): SnippetFile {
@@ -57,17 +71,20 @@ class SnippetRepository(private val context: Context) {
             put("snippets", JSONArray().apply {
                 snippets.forEach { snippet ->
                     put(JSONObject().apply {
-                        put("id", snippet.id); put("trigger", snippet.trigger); put("body", snippet.body); put("enabled", snippet.enabled)
+                        put("id", snippet.id)
+                        put("trigger", snippet.trigger)
+                        put("body", snippet.body)
+                        put("enabled", snippet.enabled)
                         if (snippet.tags.isNotEmpty()) put("tags", JSONArray(snippet.tags))
                     })
                 }
             })
         }
         val json = root.toString(2)
-        if (json.toByteArray().size > MAX_JSON_BYTES) throw SnippetValidationException("snippets.json は ${MAX_JSON_BYTES} bytes 以下にしてください。")
         val parsed = SnippetParser.parse(json)
+        directory.mkdirs()
         if (file.exists()) file.copyTo(backup, overwrite = true)
-        val temporary = File(context.filesDir, "snippets.json.tmp")
+        val temporary = File(directory, "snippets.json.tmp")
         temporary.writeText(json)
         temporary.copyTo(file, overwrite = true)
         temporary.delete()
@@ -75,8 +92,6 @@ class SnippetRepository(private val context: Context) {
     }
 
     companion object {
-        private const val MAX_JSON_BYTES = 512 * 1024
-
         val defaultJson = """
             {
               "version": 1,
