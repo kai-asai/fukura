@@ -7,11 +7,11 @@ final class KeyboardViewController: UIInputViewController {
         case symbols
     }
 
-    private var matcher = SnippetMatcher(snippets: [])
-    private var dictionaryStamp: TimeInterval = -1
+    private var snippets: [Snippet] = []
+    private var buffer = ""
+    private var candidate: Snippet?
     private var layout: Layout = .letters
     private var isShifted = false
-    private var heightConstraint: NSLayoutConstraint?
 
     private let appGroupID = "group.com.kaiasai.fukura"
     private let candidateButton = UIButton(type: .system)
@@ -21,59 +21,34 @@ final class KeyboardViewController: UIInputViewController {
         super.viewDidLoad()
         loadSnippets()
         buildKeyboard()
-        updatePreferredHeight()
     }
 
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         loadSnippets()
         updateCandidate()
-        updatePreferredHeight()
-    }
-
-    override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
-        super.traitCollectionDidChange(previousTraitCollection)
-        updatePreferredHeight()
-    }
-
-    private func updatePreferredHeight() {
-        let isPad = traitCollection.userInterfaceIdiom == .pad
-        let isLandscape = view.bounds.width > view.bounds.height && view.bounds.height > 0
-        let height: CGFloat = isPad ? 320 : (isLandscape ? 206 : 274)
-        if let heightConstraint {
-            heightConstraint.constant = height
-            return
-        }
-        let constraint = view.heightAnchor.constraint(equalToConstant: height)
-        constraint.priority = UILayoutPriority(999)
-        constraint.isActive = true
-        heightConstraint = constraint
     }
 
     private func loadSnippets() {
         guard let container = FileManager.default.containerURL(
             forSecurityApplicationGroupIdentifier: appGroupID
         ) else {
-            matcher = SnippetMatcher(snippets: [])
-            dictionaryStamp = -1
+            snippets = []
             return
         }
         let url = container.appendingPathComponent("snippets.json")
-        if !FileManager.default.fileExists(atPath: url.path) {
-            try? Data(SnippetValidator.exampleJSON.utf8).write(to: url, options: .atomic)
-        }
-        let values = try? url.resourceValues(forKeys: [.contentModificationDateKey, .fileSizeKey])
-        let stamp = (values?.contentModificationDate?.timeIntervalSince1970 ?? 0) + Double(values?.fileSize ?? 0)
-        if stamp == dictionaryStamp {
-            return
-        }
-        dictionaryStamp = stamp
         guard let data = try? SnippetValidator.readDataCheckingSize(from: url),
-              let file = try? SnippetValidator.decode(data) else {
-            matcher = SnippetMatcher(snippets: [])
+              let file = try? JSONDecoder().decode(SnippetFile.self, from: data),
+              let valid = try? SnippetValidator.validate(file) else {
+            snippets = []
             return
         }
-        matcher = SnippetMatcher(snippets: file.snippets)
+        snippets = valid.sorted {
+            if $0.trigger.count == $1.trigger.count {
+                return $0.trigger < $1.trigger
+            }
+            return $0.trigger.count > $1.trigger.count
+        }
     }
 
     private func buildKeyboard() {
@@ -271,11 +246,9 @@ final class KeyboardViewController: UIInputViewController {
     }
 
     private func typeCharacter(_ character: String) {
-        loadSnippets()
         let text = layout == .letters && isShifted ? character.uppercased() : character
         textDocumentProxy.insertText(text)
-        _ = matcher.push(text)
-        updateCandidate()
+        appendToBuffer(text)
 
         if layout == .letters && isShifted {
             isShifted = false
@@ -283,13 +256,20 @@ final class KeyboardViewController: UIInputViewController {
         }
     }
 
+    private func appendToBuffer(_ text: String) {
+        let maxLength = snippets.map { $0.trigger.count }.max() ?? 0
+        buffer = String((buffer + text).suffix(maxLength))
+        updateCandidate()
+    }
+
     private func updateCandidate() {
-        if let candidate = matcher.currentMatch() {
+        candidate = snippets.first { buffer.hasSuffix($0.trigger) }
+        if let candidate {
             candidateButton.setTitle("展開: \(candidate.body)", for: .normal)
             candidateButton.isEnabled = true
             candidateButton.accessibilityLabel = "展開候補、\(candidate.body)"
         } else {
-            candidateButton.setTitle(matcher.hasSnippets ? "候補なし" : "辞書をfukura本体で設定してください", for: .normal)
+            candidateButton.setTitle(snippets.isEmpty ? "辞書をfukura本体で設定してください" : "候補なし", for: .normal)
             candidateButton.isEnabled = false
             candidateButton.accessibilityLabel = "候補なし"
         }
@@ -318,10 +298,8 @@ final class KeyboardViewController: UIInputViewController {
 
     private func deleteBackward() {
         textDocumentProxy.deleteBackward()
-        let previousStamp = dictionaryStamp
-        loadSnippets()
-        if dictionaryStamp == previousStamp {
-            _ = matcher.backspace()
+        if !buffer.isEmpty {
+            buffer.removeLast()
         }
         updateCandidate()
     }
@@ -337,12 +315,13 @@ final class KeyboardViewController: UIInputViewController {
     }
 
     private func clearMatch() {
-        matcher.reset()
+        buffer = ""
+        candidate = nil
         updateCandidate()
     }
 
     @objc private func expandCandidate() {
-        guard let candidate = matcher.currentMatch() else {
+        guard let candidate else {
             return
         }
         for _ in 0..<candidate.trigger.count {

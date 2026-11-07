@@ -12,7 +12,7 @@ fukuraは入力したトリガーを端末内で検出し、端末内の辞書�
 
 - macOS: `~/Library/Application Support/fukura/`
 - Windows: `%LOCALAPPDATA%\fukura\`
-- iOS: App Group `group.com.kaiasai.fukura` の共有コンテナ内。キーボードはフルアクセスを要求せず、そのキーボードを選んでいる入力欄以外は読み取りません
+- iOS: App Group `group.com.kaiasai.fukura` の共有コンテナ内
 - Android: アプリ専用の内部ストレージ（`filesDir`）
 
 macOS / Windowsではアプリを削除しても辞書は残ります。完全に削除する場合は、アプリ終了後に上記フォルダーも削除してください。iOS / Androidの辞書はOS管理のアプリコンテナに保存され、関連するアプリをアンインストールするとOSによって削除されます。Androidは `android:allowBackup="false"` のため自動バックアップ対象外です。

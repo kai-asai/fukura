@@ -2,7 +2,7 @@ import Foundation
 
 final class SnippetSharedStore: ObservableObject {
     @Published private(set) var snippets: [Snippet] = []
-    @Published var message = "辞書を準備しています。"
+    @Published var message = "snippets.json をインポートしてください。"
 
     private let appGroupID = "group.com.kaiasai.fukura"
     private var containerURL: URL? {
@@ -16,75 +16,59 @@ final class SnippetSharedStore: ObservableObject {
     }
 
     func load() {
-        guard let snippetsURL else {
-            message = "App Groups の共有コンテナにアクセスできません。署名と App Group を確認してください。"
+        guard let snippetsURL, FileManager.default.fileExists(atPath: snippetsURL.path) else {
             return
-        }
-        if !FileManager.default.fileExists(atPath: snippetsURL.path) {
-            do {
-                try Data(SnippetValidator.exampleJSON.utf8).write(to: snippetsURL, options: .atomic)
-            } catch {
-                message = error.localizedDescription
-                return
-            }
         }
         do {
             let data = try SnippetValidator.readDataCheckingSize(from: snippetsURL)
-            let file = try SnippetValidator.decode(data)
-            snippets = file.snippets
-            message = "読み込み済み: \(snippets.count) 件。Fukura Keyboard を選んでいるときだけ展開できます。標準キーボードでは動作しません。"
+            let file = try JSONDecoder().decode(SnippetFile.self, from: data)
+            snippets = try SnippetValidator.validate(file)
+            message = "読み込み済み: \(snippets.count) 件。設定アプリでキーボードを有効化してください。"
         } catch {
             message = error.localizedDescription
         }
     }
 
-    func importJSON(from sourceURL: URL) throws {
+    func importJSON(from sourceURL: URL) {
         guard let snippetsURL, let backupURL else {
-            throw SnippetValidationError.invalidSnippet("App Groups の共有コンテナにアクセスできません。")
+            message = "App Groups の共有コンテナにアクセスできません。"
+            return
         }
 
-        let allowed = sourceURL.startAccessingSecurityScopedResource()
-        defer {
-            if allowed { sourceURL.stopAccessingSecurityScopedResource() }
-        }
+        do {
+            let allowed = sourceURL.startAccessingSecurityScopedResource()
+            defer {
+                if allowed { sourceURL.stopAccessingSecurityScopedResource() }
+            }
 
-        let data = try SnippetValidator.readDataCheckingSize(from: sourceURL)
-        _ = try SnippetValidator.decode(data)
-        if FileManager.default.fileExists(atPath: snippetsURL.path) {
-            _ = try? FileManager.default.removeItem(at: backupURL)
-            try FileManager.default.copyItem(at: snippetsURL, to: backupURL)
-        }
-        try data.write(to: snippetsURL, options: .atomic)
-        load()
-    }
+            let data = try SnippetValidator.readDataCheckingSize(from: sourceURL)
+            let file = try JSONDecoder().decode(SnippetFile.self, from: data)
+            _ = try SnippetValidator.validate(file)
 
-    func exportData() throws -> Data {
-        guard let snippetsURL else {
-            throw SnippetValidationError.invalidSnippet("App Groups の共有コンテナにアクセスできません。")
-        }
-        if !FileManager.default.fileExists(atPath: snippetsURL.path) {
+            if FileManager.default.fileExists(atPath: snippetsURL.path) {
+                _ = try? FileManager.default.removeItem(at: backupURL)
+                try FileManager.default.copyItem(at: snippetsURL, to: backupURL)
+            }
+            try data.write(to: snippetsURL, options: .atomic)
             load()
+        } catch {
+            message = error.localizedDescription
         }
-        let data = try SnippetValidator.readDataCheckingSize(from: snippetsURL)
-        _ = try SnippetValidator.decode(data)
-        return data
     }
 
     func save(_ newSnippets: [Snippet]) throws {
         guard let snippetsURL, let backupURL else {
             throw SnippetValidationError.invalidSnippet("App Groups の共有コンテナにアクセスできません。")
         }
-        let file = SnippetFile(
-            version: 1,
-            updatedAt: ISO8601DateFormatter().string(from: Date()),
-            snippets: newSnippets
-        )
-        let data = try SnippetValidator.encode(file)
+        let file = SnippetFile(version: 1, updatedAt: ISO8601DateFormatter().string(from: Date()), snippets: newSnippets)
+        _ = try SnippetValidator.validate(file)
         if FileManager.default.fileExists(atPath: snippetsURL.path) {
             _ = try? FileManager.default.removeItem(at: backupURL)
             try FileManager.default.copyItem(at: snippetsURL, to: backupURL)
         }
-        try data.write(to: snippetsURL, options: .atomic)
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]
+        try encoder.encode(file).write(to: snippetsURL, options: .atomic)
         load()
     }
 }

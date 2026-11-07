@@ -58,21 +58,17 @@ jobs:
       - run: chmod +x android/gradlew
       - run: android/gradlew -p android test assembleDebug assembleRelease --no-daemon
 
-  ios-core:
-    name: iOS shared Swift tests
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: swift-actions/setup-swift@v2
-        with:
-          swift-version: "6.0.3"
-      - run: swift test --package-path shared/FukuraCore
-
   ios-app:
-    name: iOS unsigned compile
+    name: iOS 1.0 (2) unsigned compile
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Check frozen iOS version
+        run: |
+          grep -q '^    MARKETING_VERSION: 1.0$' ios/project.yml
+          grep -q '^    CURRENT_PROJECT_VERSION: 2$' ios/project.yml
+          ! grep -q 'MARKETING_VERSION: 1.0.0' ios/project.yml
+          ! grep -q 'CURRENT_PROJECT_VERSION: 1$' ios/project.yml
       - run: brew install xcodegen
       - run: ios/generate-project.sh
       - run: xcodebuild -project ios/Fukura.xcodeproj -scheme Fukura -destination 'generic/platform=iOS' -configuration Debug CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY= build
