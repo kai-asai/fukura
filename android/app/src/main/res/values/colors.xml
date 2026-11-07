@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="grouped_background">#F2F2F7</color>
+    <color name="card_background">#FFFFFF</color>
+    <color name="label_primary">#1C1C1E</color>
+    <color name="label_secondary">#8E8E93</color>
+    <color name="separator">#E5E5EA</color>
+    <color name="link_blue">#007AFF</color>
+    <color name="switch_on">#34C759</color>
+    <color name="pill_background">#E9E9EE</color>
+    <color name="keyboard_background">#D1D3D9</color>
+    <color name="key_normal">#FFFFFF</color>
+    <color name="key_special">#ACB3BF</color>
+    <color name="key_accent">#C9DDF8</color>
+    <color name="key_pressed">#C8CCD2</color>
+    <color name="candidate_background">#F7F7F8</color>
+    <color name="delete_background">#FF3B30</color>
+</resources>

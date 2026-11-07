@@ -58,9 +58,24 @@ jobs:
       - run: chmod +x android/gradlew
       - run: android/gradlew -p android test assembleDebug assembleRelease --no-daemon
 
+  ios-simulator-screenshots:
+    name: iOS Simulator screenshots
+    runs-on: macos-15
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - run: chmod +x ci/ios-sim/run-screenshots.sh
+      - run: ci/ios-sim/run-screenshots.sh
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ios-simulator-screenshots
+          path: ci/ios-sim/output
+          if-no-files-found: warn
+
   ios-app:
     name: iOS 1.0 (2) unsigned compile
-    runs-on: macos-latest
+    runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
       - name: Check frozen iOS version

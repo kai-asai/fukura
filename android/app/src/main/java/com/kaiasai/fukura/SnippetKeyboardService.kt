@@ -8,13 +8,13 @@ import android.view.KeyEvent
 import android.view.View
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
-import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.TextView
 import java.io.File
 
 class SnippetKeyboardService : InputMethodService() {
     private enum class Layout { LETTERS, NUMBERS, SYMBOLS }
+    private enum class KeyStyle { NORMAL, SPECIAL, ACCENT }
 
     private var matcher = SnippetMatcher(emptyList())
     private var hasSnippets = false
@@ -48,22 +48,27 @@ class SnippetKeyboardService : InputMethodService() {
 
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(dp(4), dp(4), dp(4), dp(4))
+            setBackgroundColor(getColor(R.color.keyboard_background))
+            setPadding(dp(4), dp(6), dp(4), dp(6))
         }
 
         val candidateRow = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
         }
-        candidateRow.addView(key(";", 0.8f) { typeCharacter(";") })
+        candidateRow.addView(key(";", 0.7f, KeyStyle.SPECIAL) { typeCharacter(";") })
         candidate = TextView(this).apply {
             gravity = Gravity.CENTER_VERTICAL
-            textSize = 14f
+            textSize = 15f
             setPadding(dp(12), 0, dp(12), 0)
-            setBackgroundColor(0x1A808080)
+            setTextColor(getColor(R.color.link_blue))
+            background = android.graphics.drawable.GradientDrawable().apply {
+                cornerRadius = dp(7).toFloat()
+                setColor(getColor(R.color.candidate_background))
+            }
             setOnClickListener { expandPendingSnippet() }
-            layoutParams = LinearLayout.LayoutParams(0, dp(42), 5f).apply {
-                setMargins(dp(2), dp(2), dp(2), dp(2))
+            layoutParams = LinearLayout.LayoutParams(0, dp(36), 5f).apply {
+                setMargins(dp(3), dp(3), dp(3), dp(3))
             }
         }
         candidateRow.addView(candidate)
@@ -150,18 +155,18 @@ class SnippetKeyboardService : InputMethodService() {
         trailingAction: () -> Unit
     ) {
         val row = row()
-        row.addView(key(leadingLabel, 1.3f, leadingAction))
+        row.addView(key(leadingLabel, 1.35f, KeyStyle.SPECIAL, leadingAction))
         characters.forEach { character ->
             val label = if (layout == Layout.LETTERS && isShifted) character.uppercase() else character
             row.addView(key(label) { typeCharacter(character) })
         }
-        row.addView(key(trailingLabel, 1.3f, trailingAction))
+        row.addView(key(trailingLabel, 1.35f, KeyStyle.SPECIAL, trailingAction))
         rows.addView(row)
     }
 
     private fun addBottomRow(layoutLabel: String, layoutAction: () -> Unit) {
         val row = row()
-        row.addView(key(layoutLabel, 1.2f, layoutAction))
+        row.addView(key(layoutLabel, 1.25f, KeyStyle.SPECIAL, layoutAction))
 
         val canSwitch = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
             shouldOfferSwitchingToNextInputMethod()
@@ -169,10 +174,10 @@ class SnippetKeyboardService : InputMethodService() {
             true
         }
         if (canSwitch) {
-            row.addView(key("🌐", 1f) { switchInputMethod() })
+            row.addView(key("🌐", 1f, KeyStyle.SPECIAL) { switchInputMethod() })
         }
-        row.addView(key("空白", 3.2f) { insertSpace() })
-        row.addView(key("改行", 1.5f) { insertReturn() })
+        row.addView(key(getString(R.string.space_key), 3.4f) { insertSpace() })
+        row.addView(key(getString(R.string.return_key), 1.45f, KeyStyle.ACCENT) { insertReturn() })
         rows.addView(row)
     }
 
@@ -181,16 +186,41 @@ class SnippetKeyboardService : InputMethodService() {
         gravity = Gravity.CENTER_VERTICAL
     }
 
-    private fun key(label: String, weight: Float = 1f, action: () -> Unit) = Button(this).apply {
+    private fun key(
+        label: String,
+        weight: Float = 1f,
+        style: KeyStyle = KeyStyle.NORMAL,
+        action: () -> Unit
+    ) = TextView(this).apply {
         text = label
-        textSize = if (label.length > 2) 13f else 18f
-        minWidth = 0
-        minimumWidth = 0
+        textSize = if (label.length > 1) 15f else 20f
+        gravity = Gravity.CENTER
+        setTextColor(getColor(R.color.label_primary))
+        includeFontPadding = false
         setPadding(0, 0, 0, 0)
-        layoutParams = LinearLayout.LayoutParams(0, dp(46), weight).apply {
-            setMargins(dp(2), dp(2), dp(2), dp(2))
+        val fill = android.graphics.drawable.GradientDrawable().apply {
+            cornerRadius = dp(6).toFloat()
+            setColor(when (style) {
+                KeyStyle.NORMAL -> getColor(R.color.key_normal)
+                KeyStyle.SPECIAL -> getColor(R.color.key_special)
+                KeyStyle.ACCENT -> getColor(R.color.key_accent)
+            })
+        }
+        if (label == "⌫") {
+            text = ""
+            val icon = android.graphics.drawable.LayerDrawable(arrayOf(fill, getDrawable(R.drawable.ic_delete_key)))
+            val inset = dp(10)
+            icon.setLayerInset(1, inset, inset, inset, inset)
+            background = icon
+        } else {
+            background = fill
+        }
+        layoutParams = LinearLayout.LayoutParams(0, dp(42), weight).apply {
+            setMargins(dp(3), dp(4), dp(3), dp(4))
         }
         setOnClickListener { action() }
+        if (label == "🌐") contentDescription = getString(R.string.next_keyboard)
+        if (label == ";") contentDescription = getString(R.string.snippet_mark)
     }
 
     private fun typeCharacter(character: String) {
@@ -273,9 +303,10 @@ class SnippetKeyboardService : InputMethodService() {
         val snippet = pendingSnippet
         candidate.text = when {
             snippet != null -> "展開: ${snippet.body}"
-            !hasSnippets -> "辞書をfukura本体で設定してください"
-            else -> "候補なし"
+            !hasSnippets -> getString(R.string.candidate_empty_dictionary)
+            else -> getString(R.string.candidate_none)
         }
+        candidate.setTextColor(getColor(if (snippet != null) R.color.link_blue else R.color.label_secondary))
         candidate.isEnabled = snippet != null
     }
 
