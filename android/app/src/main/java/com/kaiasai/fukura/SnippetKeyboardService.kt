@@ -6,7 +6,10 @@ import android.os.Build
 import android.view.Gravity
 import android.view.KeyEvent
 import android.view.View
+import android.view.WindowInsets
 import android.view.inputmethod.EditorInfo
+import android.view.inputmethod.ExtractedTextRequest
+import android.view.inputmethod.InputConnection
 import android.view.inputmethod.InputMethodManager
 import android.widget.LinearLayout
 import android.widget.TextView
@@ -22,6 +25,7 @@ class SnippetKeyboardService : InputMethodService() {
     private var dictionaryStamp = Long.MIN_VALUE
     private var layout = Layout.LETTERS
     private var isShifted = false
+    private var ignoreSelectionUpdates = 0
     private lateinit var candidate: TextView
     private lateinit var rows: LinearLayout
 
@@ -36,11 +40,32 @@ class SnippetKeyboardService : InputMethodService() {
         reloadSnippets()
         clearMatch()
         renderLayout()
+        keyboardRoot()?.requestApplyInsets()
     }
+
+    private fun keyboardRoot(): View? = rows.parent as? View
 
     override fun onFinishInput() {
         clearMatch()
         super.onFinishInput()
+    }
+
+    override fun onUpdateSelection(
+        oldSelStart: Int,
+        oldSelEnd: Int,
+        newSelStart: Int,
+        newSelEnd: Int,
+        candidatesStart: Int,
+        candidatesEnd: Int
+    ) {
+        super.onUpdateSelection(oldSelStart, oldSelEnd, newSelStart, newSelEnd, candidatesStart, candidatesEnd)
+        if (ignoreSelectionUpdates > 0) {
+            ignoreSelectionUpdates--
+            return
+        }
+        if (newSelStart != newSelEnd || pendingSnippet != null) {
+            clearMatch()
+        }
     }
 
     override fun onCreateInputView(): View {
@@ -50,6 +75,15 @@ class SnippetKeyboardService : InputMethodService() {
             orientation = LinearLayout.VERTICAL
             setBackgroundColor(getColor(R.color.keyboard_background))
             setPadding(dp(4), dp(6), dp(4), dp(6))
+        }
+        applyBottomInset(root)
+        root.post {
+            val insets = root.rootWindowInsets ?: return@post
+            val bottom = bottomInsetPx(insets)
+            android.util.Log.i("fukura.ime", "keyboardBottomInset=$bottom")
+            if (root.paddingBottom != bottom) {
+                root.setPadding(root.paddingLeft, root.paddingTop, root.paddingRight, bottom)
+            }
         }
 
         val candidateRow = LinearLayout(this).apply {
@@ -226,7 +260,7 @@ class SnippetKeyboardService : InputMethodService() {
     private fun typeCharacter(character: String) {
         reloadSnippets()
         val text = if (layout == Layout.LETTERS && isShifted) character.uppercase() else character
-        currentInputConnection?.commitText(text, 1)
+        edit { it.commitText(text, 1) }
         pendingSnippet = matcher.push(text)
         updateCandidate()
         if (layout == Layout.LETTERS && isShifted) {
@@ -237,14 +271,23 @@ class SnippetKeyboardService : InputMethodService() {
 
     private fun deleteBackward() {
         reloadSnippets()
-        sendKey(KeyEvent.KEYCODE_DEL)
+        edit { connection ->
+            connection.finishComposingText()
+            connection.deleteSurroundingText(1, 0)
+        }
         pendingSnippet = matcher.backspace()
         updateCandidate()
     }
 
-    private fun sendKey(keyCode: Int) {
-        currentInputConnection?.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, keyCode))
-        currentInputConnection?.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP, keyCode))
+    private fun edit(block: (InputConnection) -> Unit) {
+        val connection = currentInputConnection ?: return
+        ignoreSelectionUpdates++
+        connection.beginBatchEdit()
+        try {
+            block(connection)
+        } finally {
+            connection.endBatchEdit()
+        }
     }
 
     private fun insertSpace() {
@@ -312,9 +355,104 @@ class SnippetKeyboardService : InputMethodService() {
 
     private fun expandPendingSnippet() {
         val snippet = pendingSnippet ?: return
-        repeat(snippet.trigger.length) { sendKey(KeyEvent.KEYCODE_DEL) }
-        currentInputConnection?.commitText(snippet.body, 1)
+        val connection = currentInputConnection ?: return
+        ignoreSelectionUpdates++
+        connection.beginBatchEdit()
+        try {
+            connection.finishComposingText()
+            val before = connection.getTextBeforeCursor(snippet.trigger.length, 0)?.toString()
+            val extracted = connection.getExtractedText(extractedTextRequest(), 0)
+            val action = SnippetReplacement.plan(
+                SnippetReplacement.FieldState(
+                    textBeforeCursor = before,
+                    selectionStart = extracted?.selectionStart ?: -1,
+                    selectionEnd = extracted?.selectionEnd ?: -1,
+                    fullText = extracted?.text?.toString()
+                ),
+                snippet.trigger,
+                snippet.body
+            )
+            when (action.mode) {
+                SnippetReplacement.Mode.DELETE_THEN_INSERT -> {
+                    connection.deleteSurroundingText(action.deleteBefore, 0)
+                    val stillThere = connection.getTextBeforeCursor(snippet.trigger.length, 0)
+                        ?.toString()
+                        ?.endsWith(snippet.trigger) == true
+                    if (stillThere) {
+                        val again = connection.getExtractedText(extractedTextRequest(), 0)
+                        val fallback = SnippetReplacement.plan(
+                            SnippetReplacement.FieldState(
+                                textBeforeCursor = null,
+                                selectionStart = again?.selectionStart ?: -1,
+                                selectionEnd = again?.selectionEnd ?: -1,
+                                fullText = again?.text?.toString()
+                            ),
+                            snippet.trigger,
+                            snippet.body
+                        )
+                        if (fallback.mode == SnippetReplacement.Mode.REPLACE_REGION) {
+                            connection.setComposingRegion(fallback.regionStart, fallback.regionEnd)
+                            connection.commitText(fallback.insert, 1)
+                        }
+                    } else {
+                        connection.commitText(snippet.body, 1)
+                    }
+                }
+                SnippetReplacement.Mode.REPLACE_REGION -> {
+                    connection.setComposingRegion(action.regionStart, action.regionEnd)
+                    connection.commitText(action.insert, 1)
+                }
+                SnippetReplacement.Mode.SKIP -> Unit
+            }
+        } finally {
+            connection.endBatchEdit()
+        }
         clearMatch()
+    }
+
+    private fun extractedTextRequest() = ExtractedTextRequest().apply {
+        hintMaxChars = 100_000
+        hintMaxLines = 10_000
+    }
+
+    private fun applyBottomInset(view: View) {
+        view.setOnApplyWindowInsetsListener { _, insets ->
+            view.post { updateBottomPadding(view) }
+            insets
+        }
+        view.post { updateBottomPadding(view) }
+        view.requestApplyInsets()
+    }
+
+    private fun updateBottomPadding(view: View) {
+        val insets = view.rootWindowInsets
+        val reported = if (insets != null) bottomInsetPx(insets) else 0
+        val navigation = if (reported > 0) reported else systemNavigationHeight()
+        val location = IntArray(2)
+        view.getLocationOnScreen(location)
+        val screenHeight = view.rootView.height.takeIf { it > 0 } ?: resources.displayMetrics.heightPixels
+        val viewBottom = location[1] + view.height
+        val overlap = (viewBottom - (screenHeight - navigation)).coerceAtLeast(0)
+        val padding = maxOf(reported, overlap)
+        if (view.paddingBottom != padding) {
+            view.setPadding(view.paddingLeft, view.paddingTop, view.paddingRight, padding)
+        }
+    }
+
+    private fun systemNavigationHeight(): Int {
+        val id = resources.getIdentifier("navigation_bar_height", "dimen", "android")
+        return if (id > 0) resources.getDimensionPixelSize(id) else 0
+    }
+
+    private fun bottomInsetPx(insets: WindowInsets): Int {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            val navigation = insets.getInsetsIgnoringVisibility(WindowInsets.Type.navigationBars()).bottom
+            val gesture = insets.getInsetsIgnoringVisibility(WindowInsets.Type.mandatorySystemGestures()).bottom
+            SnippetReplacement.bottomPadding(navigation, gesture)
+        } else {
+            @Suppress("DEPRECATION")
+            insets.systemWindowInsetBottom
+        }
     }
 
     private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
