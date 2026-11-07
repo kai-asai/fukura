@@ -29,19 +29,18 @@
             android:id="@+id/import_button"
             android:layout_width="44dp"
             android:layout_height="44dp"
-            android:background="@drawable/bg_pill"
+            android:background="@android:color/transparent"
             android:contentDescription="@string/import_json"
-            android:padding="10dp"
+            android:padding="8dp"
             android:src="@drawable/ic_import" />
 
         <ImageButton
             android:id="@+id/add_button"
             android:layout_width="44dp"
             android:layout_height="44dp"
-            android:layout_marginStart="8dp"
-            android:background="@drawable/bg_pill"
+            android:background="@android:color/transparent"
             android:contentDescription="@string/add_snippet"
-            android:padding="10dp"
+            android:padding="8dp"
             android:src="@drawable/ic_add" />
     </LinearLayout>
 
